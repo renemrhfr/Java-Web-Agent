@@ -1,0 +1,41 @@
+services:
+  java-web-agent-api:
+    build: .
+    container_name: java-web-agent-api
+    init: true
+    cpus: 1.50
+    shm_size: "256m"
+    mem_limit: 1024m
+    memswap_limit: 1024m
+    user: "pwuser"
+    privileged: false
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,exec,size=256m
+      - /run:rw,nosuid,nodev,exec,size=128m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 256
+    expose:
+      - "8080"
+    environment:
+      - PORT=8080
+      - PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+      - BROWSER_LOW_RESOURCE_MODE=true
+      - BROWSER_MAX_STEPS=20
+      - BROWSER_MAX_CONSECUTIVE_FAILURES=6
+      - BROWSER_BLOCK_IMAGES=true
+      - BROWSER_BLOCK_FONTS=true
+      - BROWSER_BLOCK_MEDIA=true
+      - BROWSER_SNAPSHOT_MAX_CHARS=4000
+      - BROWSER_SNAPSHOT_INCLUDE_DETAILS=false
+      - BROWSER_SNAPSHOT_FILTER_VISIBLE_ONLY=true
+    networks:
+      - internal
+    restart: no
+
+# Run on an Internal Network, managed from outside via Docker
+networks:
+  internal:
+    external: true
