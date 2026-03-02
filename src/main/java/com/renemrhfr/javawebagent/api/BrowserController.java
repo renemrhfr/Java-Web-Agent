@@ -2,6 +2,8 @@ package com.renemrhfr.javawebagent.api;
 
 import com.renemrhfr.javawebagent.core.Browser;
 import jakarta.annotation.PreDestroy;
+import org.springframework.boot.SpringApplication;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -39,6 +41,7 @@ public class BrowserController {
     private final Map<String, BrowseJobState> jobs = new ConcurrentHashMap<>();
     private final Object lock = new Object();
     private volatile String activeJobId;
+    private final ConfigurableApplicationContext context;
 
     /**
      * Creates a new browser controller.
@@ -46,8 +49,30 @@ public class BrowserController {
      * @param browser the browser automation service to delegate requests to
      */
     @SuppressWarnings("unused")
-    public BrowserController(Browser browser) {
+    public BrowserController(Browser browser, ConfigurableApplicationContext context) {
         this.browser = browser;
+        this.context = context;
+    }
+
+    /**
+     * Killswitch Endpoint in case the Browser gets stuck / hangs / does something harmful and you need an Option to remote close.
+     * @return Response Ok.
+     */
+    @GetMapping(path = "/killswitch")
+    public ResponseEntity<Void> killswitch() {
+        Thread shutdownThread = new Thread(() -> {
+            try {
+                // Wait 1 sec so we can Respond
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            System.exit(SpringApplication.exit(context, () -> 0));
+        });
+
+        shutdownThread.setDaemon(false);
+        shutdownThread.start();
+        return ResponseEntity.ok().build();
     }
 
     /**
@@ -97,7 +122,7 @@ public class BrowserController {
      * Shut down the executor service when the bean is destroyed.
      */
     @PreDestroy
-    public void shutdown() {
+    public void shutdownExecutor() {
         executor.shutdownNow();
     }
 
